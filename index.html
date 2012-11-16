@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>TypeScript Interpret - Terminal Emulator</title>
+<link href="http://terminal.jcubic.pl/css/jquery.terminal.css" rel="stylesheet"/>
+<!--[if IE]>
+<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+<![endif]-->
+</head>
+<body>
+    <div id="term"></div>
+    <script type="text/javascript" src="http://code.jquery.com/jquery-1.7.2.min.js"></script>
+    <script type="text/javascript" src="http://terminal.jcubic.pl/js/jquery.mousewheel-min.js"></script>
+    <script type="text/javascript" src="http://terminal.jcubic.pl/js/jquery.terminal-0.4.22.min.js"></script>
+    <script type="text/javascript" src="http://niutech.github.com/typescript-compile/js/typescript.min.js"></script>
+    <script type="text/javascript">
+jQuery(function($) {
+
+    var outfile = {
+        source: '',
+        Write: function(s) {
+            this.source += s;
+        },
+        WriteLine: function(s) {
+            this.source += s + '\n';
+        },
+        Clear: function() {
+            this.source = '';
+        },
+        Close: function() {}
+    };
+
+    var interpret = function(cmd) {
+        if(cmd === '') {
+            return '';
+        }
+        outfile.Clear();
+        var compiler = new TypeScript.TypeScriptCompiler(outfile);
+        compiler.parser.errorRecovery = true;
+        compiler.setErrorCallback(function(start, len, message, block) {
+            throw 'TypeScriptError: ' + message + ', char: ' + start + ', length: ' + len;
+        });
+        compiler.addUnit(cmd, '');
+        //compiler.typeCheck(); //Disabled due to exclusion of lib.d.ts
+        compiler.emit(false, function createFile(fileName) {
+            return outfile;
+        });
+    }
+    
+    $('#term').terminal(function(command, term) {
+        try {
+            interpret(command);
+            var result = window.eval(outfile.source);
+            if(result !== undefined) {
+                term.echo(new String(result));
+            }
+        } catch(e) {
+            term.error(new String(e));
+        }
+    }, {
+        greetings: 'Welcome to TypeScript Interpret ver. 0.1 by Jerzy Głowacki & Jakub Jankiewicz!',
+        name: 'term',
+        height: 600,
+        prompt: 'ts> '
+    });
+});
+    </script>
+</body>
+</html>
